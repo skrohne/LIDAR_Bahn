@@ -1,4 +1,5 @@
 library(sf)
+library(terra)
 
 # Set the path to your input shapefile
 input_shp_path <- "C:\\Users\\krohn\\OneDrive\\Dokumente\\Uni\\WS23\\LIDAR\\geo-strecke_2020\\Strecken\\Shapefiles"
@@ -23,6 +24,12 @@ print(st_crs(sf_data_reprojected))
 
 # Convert 3D Line String to 2D Line String
 sf_data_2D <- st_zm(sf_data_reprojected)
+
+#Rasterize 2D Line String using terra package 
+v <- vect(sf_data_2D)
+r <- rast(v)
+x <- rasterizeGeom(v, r, "length")    
+plot(x); lines(v)
 
 # Set the path to the output shapefile
 output_shp_path <- file.path(output_folder, "ETRS_shapefile.shp")
