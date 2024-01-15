@@ -3,40 +3,58 @@ library(mapview)
 library(future)
 library(dplyr)
 library(sp)
+library(st)
+library(sf) 
+library(leaflet)
+
 
 las_file_0_0 <- readLAS("hiltrup_407_5749_nw.laz",filter = "-drop_classification 18")
+plot(las_file_0_0$Intensity)
 las_file_0_1 <- readLAS("hiltrup_407_5750_nw.laz",filter = "-drop_classification 18")
-
 merged_las<-rbind(las_file_0_0,las_file_0_1)
-summary(merged_las)
-
-# Extract a transect
-p1 <- c(407313, y = 5751642)
-p2 <- c(408133, y = 5748986)
-#las <- clip_transect(merged_las , p1, p2, width = 60)
-#las <- clip_circle (merged_las, 407845,5749737, 50)
-las <- clip_circle(merged_las, 407822, 5750033 ,120)
-
-# Non-ground points (trees and other objects)
-las_trees <- filter_poi(Classification != 2)
-plot(las_trees)
+buf_las_20 <- st_read ("buffered_hiltrup_20.shp")
+buf_las_40 <- st_read ("buf_hiltrup_40.shp")
+shp_hiltrup <- st_read("shape_hiltrup.shp")
+dif_hil_40 <- st_read("dif_hiltrup_40.shp")
+dif_las <- clip_roi (merged_las, dif_hil_40)
+clipped_las <- clip_roi(merged_las, shp_hiltrup)
+buffered_las <- clip_roi(merged_las, buf_las_40)
+small_buf_las <- clip_roi(merged_las, buf_las_20)
 
 
-# Funktion locate berechnet höchsten Punkt mithilfe des Umfeldes
+#plot(buffered_las)
+#plot(dif_las)
+#plot(clipped_las)
+
+# Funktion locate/lmf berechnet höchsten Punkt mithilfe des Umfeldes
 #ws:Beobachtungsraum, (Durchmesser in m) 
-ttops <- locate_trees(las, lmf(ws = 10,hmin=65, shape="circular"))
-
-
-x <- plot(las, bg = "white", size = 3)
+ttops <- locate_trees(dif_las, lmf(ws = 10,hmin=65, shape="circular"))
+x <- plot(buffered_las,size = 3)
 add_treetops3d(x, ttops)
 
 
-# run segment trees function on the LASfile using the li2012 algorithm
-las <- segment_trees(las, li2012())
-# select a random assortment of 200 colours (prep for plotting data)
-col <- random.colors(200)
-# plot the data using the 200 colour, assigning them to the tree IDs created by the segment_tress() function
-plot(las, color = "treeID", colorPalette = col)
+
+m <- leaflet() %>%
+  addProviderTiles("Esri.WorldImagery")  %>%  # Add default OpenStreetMap map tiles
+  addCircleMarkers(lng = 7.658, lat = 51.896, radius = 5, color = "darkgreen", popup = "Höhe: 9m, Abstand: 10m") %>%
+  addCircleMarkers(lng = 7.658, lat = 51.898, radius = 5, color = "red",popup = "Höhe: 10m, Abstand: 5m") %>%
+  addCircleMarkers(lng = 7.658, lat = 51.897, radius = 5, color = "red",popup = "Höhe: 10m, Abstand: 4m")
+m  # Print the map
 
 
-summary(las)
+
+points_within_shape <- st_intersection(st_as_sf(ttops), buf_las_20)
+plot(points_within_shape)
+
+coordinates <- st_coordinates(ttops$geometry)
+
+# Convert to a data frame
+coordinates_df <- data.frame(X = coordinates[, 1], Y = coordinates[, 2], Z = coordinates[, 3])
+
+X<-coordinates_df$X[1]
+Y <- coordinates_df$Y[1]
+Z <- coordinates_df$Z[1]
+
+
+
+
