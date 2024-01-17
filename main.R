@@ -1,71 +1,60 @@
 library(lidR)
 library(mapview)
 library(future)
+library(dplyr)
+library(sp)
+library(st)
+library(sf) 
+library(leaflet)
 
-las_file_0_0 <- readLAS("hiltrup_407_5749_nw.laz")
-las_file_0_1 <- readLAS("hiltrup_407_5750_nw.laz")
 
-
+las_file_0_0 <- readLAS("hiltrup_407_5749_nw.laz",filter = "-drop_classification 18")
+plot(las_file_0_0$Intensity)
+las_file_0_1 <- readLAS("hiltrup_407_5750_nw.laz",filter = "-drop_classification 18")
 merged_las<-rbind(las_file_0_0,las_file_0_1)
-summary(merged_las)
+buf_las_20 <- st_read ("buffered_hiltrup_20.shp")
+buf_las_40 <- st_read ("buf_hiltrup_40.shp")
+shp_hiltrup <- st_read("shape_hiltrup.shp")
+dif_hil_40 <- st_read("dif_hiltrup_40.shp")
+dif_las <- clip_roi (merged_las, dif_hil_40)
+clipped_las <- clip_roi(merged_las, shp_hiltrup)
+buffered_las <- clip_roi(merged_las, buf_las_40)
+small_buf_las <- clip_roi(merged_las, buf_las_20)
 
-# Extract a transect
-p1 <- c(407313, y = 5751642)
-p2 <- c(408133, y = 5748986)
-#las <- clip_transect(merged_las , p1, p2, width = 60)
-#las <- clip_circle (merged_las, 407845,5749737, 50)
-las <- clip_circle(merged_las, 407822, 5750033 ,120)
 
+#plot(buffered_las)
+#plot(dif_las)
+#plot(clipped_las)
 
-
-chm <- rasterize_canopy(las, res=0.5, pitfree(subcircle = 0.2))
-
-# Non-ground points (trees and other objects)
-las_trees <- filter_poi(Classification != 2)
-plot(las_trees)
-
-# Funktion locate berechnet höchsten Punkt mithilfe des Umfeldes
-#ws:Beobachtungsraum, (Durchmesser in m)
-ttops <- locate_trees(las, lmf(ws = 10, hmin=65))
-
-plot(chm, col = height.colors(50))
-plot(sf::st_geometry(ttops), add = TRUE, pch = 3, col="white")
-
-x <- plot(las, bg = "white", size = 3)
+# Funktion locate/lmf berechnet höchsten Punkt mithilfe des Umfeldes
+#ws:Beobachtungsraum, (Durchmesser in m) 
+ttops <- locate_trees(dif_las, lmf(ws = 10,hmin=65, shape="circular"))
+x <- plot(buffered_las,size = 3)
 add_treetops3d(x, ttops)
 
-# Point-to-raster 2 resolutions
-chm_p2r_05 <- rasterize_canopy(las, 0.5, p2r(subcircle = 0.2), pkg = "terra")
-chm_p2r_1 <- rasterize_canopy(las, 1, p2r(subcircle = 0.2), pkg = "terra")
-
-# Pitfree with and without subcircle tweak
-chm_pitfree_05_1 <- rasterize_canopy(las, 0.5, pitfree(), pkg = "terra")
-chm_pitfree_05_2 <- rasterize_canopy(las, 0.5, pitfree(subcircle = 0.2), pkg = "terra")
-
-# Post-processing median filter
-kernel <- matrix(1,3,3)
-chm_p2r_05_smoothed <- terra::focal(chm_p2r_05, w = kernel, fun = median, na.rm = TRUE)
-chm_p2r_1_smoothed <- terra::focal(chm_p2r_1, w = kernel, fun = median, na.rm = TRUE)
-
-ttops_chm_p2r_05 <- locate_trees(chm_p2r_05, lmf(5))
-ttops_chm_p2r_1 <- locate_trees(chm_p2r_1, lmf(5))
-ttops_chm_pitfree_05_1 <- locate_trees(chm_pitfree_05_1, lmf(5))
-ttops_chm_pitfree_05_2 <- locate_trees(chm_pitfree_05_2, lmf(5))
-ttops_chm_p2r_05_smoothed <- locate_trees(chm_p2r_05_smoothed, lmf(5))
-ttops_chm_p2r_1_smoothed <- locate_trees(chm_p2r_1_smoothed, lmf(5))
-
-par(mfrow=c(3,2))
-col <- height.colors(50)
-plot(chm_p2r_05, main = "CHM P2R 0.5", col = col); plot(sf::st_geometry(ttops_chm_p2r_05), add = T, pch =3)
-plot(chm_p2r_1, main = "CHM P2R 1", col = col); plot(sf::st_geometry(ttops_chm_p2r_1), add = T, pch = 3)
-plot(chm_p2r_05_smoothed, main = "CHM P2R 0.5 smoothed", col = col); plot(sf::st_geometry(ttops_chm_p2r_05_smoothed), add = T, pch =3)
-plot(chm_p2r_1_smoothed, main = "CHM P2R 1 smoothed", col = col); plot(sf::st_geometry(ttops_chm_p2r_1_smoothed), add = T, pch =3)
-plot(chm_pitfree_05_1, main = "CHM PITFREE 1", col = col); plot(sf::st_geometry(ttops_chm_pitfree_05_1), add = T, pch =3)
-plot(chm_pitfree_05_2, main = "CHM PITFREE 2", col = col); plot(sf::st_geometry(ttops_chm_pitfree_05_2), add = T, pch =3)
-
-algo <- dalponte2016(chm_pitfree_05_2, ttops_chm_pitfree_05_2)
-las <- segment_trees(las, algo) # segment point cloud
-plot(las, bg = "white", size = 4, color = "treeID") # visualize trees
 
 
-summary(las)
+m <- leaflet() %>%
+  addProviderTiles("Esri.WorldImagery")  %>%  # Add default OpenStreetMap map tiles
+  addCircleMarkers(lng = 7.658, lat = 51.896, radius = 5, color = "darkgreen", popup = "Höhe: 9m, Abstand: 10m") %>%
+  addCircleMarkers(lng = 7.658, lat = 51.898, radius = 5, color = "red",popup = "Höhe: 10m, Abstand: 5m") %>%
+  addCircleMarkers(lng = 7.658, lat = 51.897, radius = 5, color = "red",popup = "Höhe: 10m, Abstand: 4m")
+m  # Print the map
+
+
+
+points_within_shape <- st_intersection(st_as_sf(ttops), buf_las_20)
+plot(points_within_shape)
+
+coordinates <- st_coordinates(ttops$geometry)
+
+# Convert to a data frame
+coordinates_df <- data.frame(X = coordinates[, 1], Y = coordinates[, 2], Z = coordinates[, 3])
+
+X<-coordinates_df$X[1]
+Y <- coordinates_df$Y[1]
+Z <- coordinates_df$Z[1]
+
+
+
+
