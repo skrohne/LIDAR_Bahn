@@ -32,7 +32,7 @@ x <- rasterizeGeom(v, r, "length")
 plot(x); lines(v)
 
 # Set the path to the output shapefile
-output_shp_path <- file.path(output_folder, "ETRS_shapefile.shp")
+output_shp_path <- file.path(output_folder, "ERTS_shapefile.shp")
 
 # Write the reprojected data to the output shapefile
 st_write(sf_data_2D, output_shp_path)

@@ -1,6 +1,6 @@
 library(st)
 
-shapefile1 = st_read("ERTS_shp_strecke.shp")
+shapefile1 = st_read("Shapefiles/ERTS_shp_strecke.shp")
 #summary(shapefile1)
 #plot(shapefile1)
 
