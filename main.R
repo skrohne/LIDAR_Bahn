@@ -1,25 +1,17 @@
 library(lidR)
-library(mapview)
-library(future)
-library(dplyr)
 library(sp)
 library(st)
 library(sf) 
-library(leaflet)
 
 #read las files and merge
 las_file_0_0 <- readLAS("LASfiles/hiltrup_407_5749_nw.laz",filter = "-drop_classification 18")
 las_file_0_1 <- readLAS("LASfiles/hiltrup_407_5750_nw.laz",filter = "-drop_classification 18")
 merged_las<-rbind(las_file_0_0,las_file_0_1)
 #read shapefiles and merge
-#buf_las_20 <- st_read ("Shapefiles/buffered_hiltrup_20.shp")
 buf_las_40 <- st_read ("Shapefiles/buf_hiltrup_40.shp")
-shp_hiltrup <- st_read("Shapefiles/shape_hiltrup.shp")
-dif_hil_40 <- st_read("Shapefiles/dif_hiltrup_40.shp")
-#dif_las <- clip_roi (merged_las, dif_hil_40)
-#clipped_las <- clip_roi(merged_las, shp_hiltrup)
+shp_hiltrup <- st_read("Shapefiles/shape_hiltrup_new.shp")
+dif_hil_40 <- st_read("Shapefiles/dif_hiltrup_new.shp")
 buffered_las <- clip_roi(merged_las, buf_las_40)
-#small_buf_las <- clip_roi(merged_las, buf_las_20)
 shapefile_strecke <- st_read("Shapefiles/ERTS_shp_strecke.shp")
 
 #create DTM from Las
