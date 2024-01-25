@@ -7,51 +7,50 @@ library(st)
 library(sf) 
 library(leaflet)
 
-
+#read las files and merge
 las_file_0_0 <- readLAS("LASfiles/hiltrup_407_5749_nw.laz",filter = "-drop_classification 18")
-#plot(las_file_0_0$Intensity)
 las_file_0_1 <- readLAS("LASfiles/hiltrup_407_5750_nw.laz",filter = "-drop_classification 18")
 merged_las<-rbind(las_file_0_0,las_file_0_1)
-buf_las_20 <- st_read ("Shapefiles/buffered_hiltrup_20.shp")
+#read shapefiles and merge
+#buf_las_20 <- st_read ("Shapefiles/buffered_hiltrup_20.shp")
 buf_las_40 <- st_read ("Shapefiles/buf_hiltrup_40.shp")
 shp_hiltrup <- st_read("Shapefiles/shape_hiltrup.shp")
 dif_hil_40 <- st_read("Shapefiles/dif_hiltrup_40.shp")
-dif_las <- clip_roi (merged_las, dif_hil_40)
-clipped_las <- clip_roi(merged_las, shp_hiltrup)
+#dif_las <- clip_roi (merged_las, dif_hil_40)
+#clipped_las <- clip_roi(merged_las, shp_hiltrup)
 buffered_las <- clip_roi(merged_las, buf_las_40)
-small_buf_las <- clip_roi(merged_las, buf_las_20)
+#small_buf_las <- clip_roi(merged_las, buf_las_20)
+shapefile_strecke <- st_read("Shapefiles/ERTS_shp_strecke.shp")
 
+#create DTM from Las
+dtm <- rasterize_terrain(buffered_las, res = 2, algorithm = tin())
+plot_dtm3d(dtm, bg = "white") 
 
-#plot(buffered_las)
-#plot(dif_las)
-#plot(clipped_las)
+#DTM Surface normalization
+#sutract dtm from las
+las_norm <- buffered_las - dtm
+plot(las_norm, size = 4, bg = "white")
 
-# Funktion locate/lmf berechnet höchsten Punkt mithilfe des Umfeldes
-#ws:Beobachtungsraum, (Durchmesser in m) 
-ttops <- locate_trees(dif_las, lmf(ws = 10,hmin=65, shape="circular"))
-x <- plot(buffered_las,size = 3)
-add_treetops3d(x, ttops)
+#filter out rails
+las_norm_dif <- clip_roi (las_norm, dif_hil_40)
+#calculate treetops
+ttops_norm <- locate_trees(las_norm_dif, lmf(ws = 10,hmin=5, shape="circular"))
+x <- plot(las_norm,size = 3)
+add_treetops3d(x, ttops_norm)
 
+#add parameter min distances
+min_distances <- numeric(length(ttops_norm$treeID))
+#calculating each distance to the rails
+for (i in seq_along(ttops_norm$treeID)) {
+  specific_treetop <- ttops_norm[ttops_norm$treeID == ttops_norm$treeID[i], ]
+  distance_to_line <- st_distance(specific_treetop, shapefile_strecke)
+  min_distance <- min(distance_to_line)
+  min_distances[i] <- min_distance
+}
+#adding in the values to ttops
+ttops_norm$min_distance_to_line <- min_distances
 
-
-m <- leaflet() %>%
-  addProviderTiles("Esri.WorldImagery")  %>%  # Add default OpenStreetMap map tiles
-  addCircleMarkers(lng = 7.658, lat = 51.896, radius = 5, color = "darkgreen", popup = "Höhe: 9m, Abstand: 10m") %>%
-  addCircleMarkers(lng = 7.658, lat = 51.898, radius = 5, color = "red",popup = "Höhe: 10m, Abstand: 5m") %>%
-  addCircleMarkers(lng = 7.658, lat = 51.897, radius = 5, color = "red",popup = "Höhe: 10m, Abstand: 4m")
-m  # Print the map
-
-
-
-points_within_shape <- st_intersection(st_as_sf(ttops), buf_las_20)
-plot(points_within_shape)
-
-coordinates <- st_coordinates(ttops$geometry)
-
-# Convert to a data frame
-coordinates_df <- data.frame(X = coordinates[, 1], Y = coordinates[, 2], Z = coordinates[, 3])
-
-X<-coordinates_df$X[1]
-Y <- coordinates_df$Y[1]
-Z <- coordinates_df$Z[1]
-
+#calculate difference in height to distance to rails
+for (i in seq_along(ttops_norm$treeID)) {
+  ttops_norm$height_distance_diff[i]<-((ttops_norm$Z[i])/ttops_norm$min_distance_to_line[i])
+}
