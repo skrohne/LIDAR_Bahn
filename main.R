@@ -54,3 +54,5 @@ ttops_norm$min_distance_to_line <- min_distances
 for (i in seq_along(ttops_norm$treeID)) {
   ttops_norm$height_distance_diff[i]<-((ttops_norm$Z[i])/ttops_norm$min_distance_to_line[i])
 }
+#remove z values from geometry
+st_zm(ttops_norm)
