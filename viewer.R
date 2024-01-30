@@ -11,5 +11,6 @@ mapview(ttops_norm, zcol = "height_distance_diff",
         map.types = c("CartoDB.Positron","Esri.WorldImagery"),
         at = seq(0, 3.5,0.5),
         legend = TRUE,
+        layer.name = 'Height-Distance-Index',
         col.regions = custom_palette, 
-        alpha = 0,) #change Style
+        alpha = 0) #change Style
