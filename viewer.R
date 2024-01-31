@@ -19,7 +19,7 @@ subset_map <- mapview(ttops_try, zcol = "average_height_diff",
                 map.types = c("CartoDB.Positron","Esri.WorldImagery"),
                 at = seq(0.3,0.6,0.1),
                 legend = TRUE,
-                layer.name = 'Subset Number',
+                layer.name = 'Average Index',
                 col.regions = custom_palette, 
                 alpha = 0) #change Style
 subset_map
