@@ -55,7 +55,11 @@ for (i in seq_along(ttops_norm_2$treeID)) {
 }
 
 #remove z values from geometry
-st_zm(ttops_norm_2)
+ttops_norm_2 <- st_zm(ttops_norm_2)
+
+#Filter out all trees with an index below 0.7
+filtered_ttops_2 <- ttops_norm_2[ttops_norm_2$height_distance_diff > 0.7, ]
+
 
 
 

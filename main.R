@@ -47,32 +47,7 @@ for (i in seq_along(ttops_norm$treeID)) {
   ttops_norm$height_distance_diff[i]<-((ttops_norm$Z[i])/ttops_norm$min_distance_to_line[i])
 }
 #remove z values from geometry
-st_zm(ttops_norm)
+ttops_norm <- st_zm(ttops_norm)
 
-# Set sizes for subsets
-ttops_try <- ttops_norm
-set_size <- 100
-num_sets <- ceiling(nrow(ttops_norm) / set_size)
-
-# Create a list to store subsets
-subset_list <- vector("list", length = num_sets)
-
-# Split the data into subsets
-for (i in 1:num_sets) {
-  start_index <- (i - 1) * set_size + 1
-  end_index <- min(i * set_size, nrow(ttops_norm))
-  subset_list[[i]] <- ttops_norm[start_index:end_index, ]
-  
-  # Calculate the average of height_distance_diff for each subset
-  average_height_diff <- mean(subset_list[[i]]$height_distance_diff)
-  
-  # Add average and subset number to the subset
-  subset_list[[i]]$average_height_diff <- average_height_diff
-  subset_list[[i]]$subset_number <- i
-}
-
-# Combine the subsets back into a single data frame
-ttops_try <- do.call(rbind, subset_list)
-
-# Print or use the modified ttops_norm data frame as needed
-print(ttops_try)
+#Filter out all trees with an index below 0.7
+filtered_ttops <- ttops_norm[ttops_norm$height_distance_diff > 0.7, ]
