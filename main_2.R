@@ -41,8 +41,7 @@ min_distances_2 <- numeric(length(ttops_norm_2$treeID))
 #calculating each distance to the rails
 for (i in seq_along(ttops_norm_2$treeID)) {
   specific_treetop_2 <- ttops_norm_2[ttops_norm_2$treeID == ttops_norm_2$treeID[i], ]
-  distance_to_line_2 <- st_distance(specific_treetop_2, railline)
-  min_distance_2 <- min(distance_to_line_2)
+  min_distance_2 <- st_distance(specific_treetop_2, railline)
   min_distances_2[i] <- min_distance_2
 }
 
